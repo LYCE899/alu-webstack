@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Creating a certificate using certbot and 
+# configuring HAproxy to accept encrypted traffic for my subdomain www.
+
+frontend www-http
+    bind *:80
+    mode http
+    default_backend web-backend
+frontend www-https
+    bind *:443 ssl crt /etc/haproxy/amanicompany.tech.pem
+    http-request set-header X-Forwarded-Proto https
+    acl letsencrypt-acl path_beg /.well-known/acme-challenge/
+    use_backend letsencrypt-backend if letsencrypt-acl
+    default_backend web-backend
+
+backend web-backend
+    redirect scheme https unless { ssl_fc }
+    balance roundrobin
+    server 5389-web-01 52.23.205.211:80 check
+    server 5389-web-02 54.167.116.166:80 check
+backend letsencrypt-backend
+   server letsencrypt 127.0.0.1:54321
